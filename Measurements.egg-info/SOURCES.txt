@@ -1,0 +1,10 @@
+README.md
+setup.py
+Measurements.egg-info/PKG-INFO
+Measurements.egg-info/SOURCES.txt
+Measurements.egg-info/dependency_links.txt
+Measurements.egg-info/requires.txt
+Measurements.egg-info/top_level.txt
+mypythonlib/__init__.py
+mypythonlib/generate_project.py
+test/test_fun.py
