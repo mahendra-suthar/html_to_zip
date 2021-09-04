@@ -7,4 +7,3 @@ Measurements.egg-info/requires.txt
 Measurements.egg-info/top_level.txt
 mypythonlib/__init__.py
 mypythonlib/generate_project.py
-test/test_fun.py

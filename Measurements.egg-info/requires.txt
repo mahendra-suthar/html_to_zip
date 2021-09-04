@@ -1,1 +1,5 @@
-numpy
+boto3
+shutil
+zipfile
+bs4
+flask

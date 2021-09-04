@@ -10,28 +10,10 @@ from bs4 import BeautifulSoup
 # from flask_restful import Api
 from flask import Flask, request
 
-# app = Flask(__name__)
-# app.config["DEBUG"] = True
-# api = Api(app)
 
 current_timestamp = calendar.timegm(time.gmtime())
 
-ACCESS_ID = "AKIATI3CAFP2H3OP3WS7"
-ACCESS_KEY = "ij/kc+oWq32pO0ceNKn6CIpbxjJZe9RHh0fMzG+c"
-BUCKET_NAME = "unibuilder"
-S3_ZIP_NAME = f"s3_zip_{current_timestamp}"
-REGION = "ap-south-1"
-CONTENT_TYPE = 'application/zip'
-ACCESS = 'public-read'
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-
-
-# Let's use Amazon S3
-s3_resource = boto3.resource('s3', aws_access_key_id=ACCESS_ID, aws_secret_access_key=ACCESS_KEY, region_name='ap-south-1')
-
-# for bucket in s3_resource.buckets.all():
-#     for data in bucket.objects.all():
-#         print("data------>>> ",data)
 
 
 def success_response(data=None, message=None):
@@ -95,14 +77,26 @@ def delete_folder(folder_path, folder_name):
     print(f"Directory '{folder_name}' deleted")
 
 
-def generate_s3_link(zip_name, bucket_name, s3_zip_name):
+def generate_s3_link(s3_config, zip_name):
+    access_id = s3_config.get("access_id", None)
+    access_key = s3_config.get("access_key", None)
+    bucket_name = s3_config.get("bucket_name", None)
+    s3_zip_name = f"s3_zip_{current_timestamp}"
+    region = s3_config.get("region", None)
+    content_type = s3_config.get("content_type", None)
+    access = s3_config.get("access", None)
+
+    s3_resource = boto3.resource('s3', aws_access_key_id=access_id, aws_secret_access_key=access_key,
+                                 region_name=region)
+
+    # Generate aws s3 url for zip
     s3_resource.meta.client.upload_file(
         zip_name,
         bucket_name,
         s3_zip_name,
-        ExtraArgs={'ACL': ACCESS, 'ContentType': CONTENT_TYPE}
+        ExtraArgs={'ACL': access, 'ContentType': content_type}
     )
-    s3_url = f"https://{bucket_name}.s3.{REGION}.amazonaws.com/{s3_zip_name}"
+    s3_url = f"https://{bucket_name}.s3.{region}.amazonaws.com/{s3_zip_name}"
     return s3_url
 
 
@@ -121,6 +115,7 @@ def generate_project():
         json_data = request_data.get("json_data", None)
         folder_name = request_data.get("folder_name", None)
         zip_url = request_data.get("zip_url", None)
+        s3_config = request_data.get("s3_config", {})
 
         if not folder_name:
             folder_name = f"FOLD_{current_timestamp}"
@@ -153,15 +148,18 @@ def generate_project():
             zip_path = create_zip_dir(folder_path, ZIP_NAME)
             full_zip_path = os.path.join(ROOT_DIR, zip_path)
 
-            # Generate aws s3 url for zip
-            s3_url = generate_s3_link(ZIP_NAME, BUCKET_NAME, S3_ZIP_NAME)
-
             # Delete folder
             delete_folder(folder_path, folder_name)
 
             # Delete zip
             delete_zip(full_zip_path, ZIP_NAME)
-            response_data = success_response(data=s3_url, message="url created successfully")
+
+            if s3_config:
+                url = generate_s3_link(s3_config, ZIP_NAME)
+            else:
+                url = zip_path
+
+            response_data = success_response(data=url, message="url created successfully")
         else:
             response_data = error_response(message="Didn't get html data")
     else:
